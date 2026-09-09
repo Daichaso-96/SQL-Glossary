@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SQL基礎解説（基本情報技術者試験）</title>
+<style>
+  body { font-family: "Meiryo", "Yu Gothic", sans-serif; line-height: 1.7; color: #1b1b1b; max-width: 920px; margin: 0 auto; padding: 24px; }
+  h1 { font-size: 24px; border-bottom: 3px solid #2c6e8f; padding-bottom: 8px; }
+  h2 { font-size: 20px; background: #2c6e8f; color: #fff; padding: 6px 12px; margin-top: 36px; border-radius: 4px; }
+  h3 { font-size: 16px; color: #2c6e8f; border-left: 5px solid #2c6e8f; padding-left: 10px; margin-top: 24px; }
+  .sql { font-family: "Consolas", "Courier New", monospace; background: #f4f7f9; border: 1px solid #c7d6de; border-radius: 4px; padding: 10px 14px; margin: 8px 0; white-space: pre-wrap; font-size: 14px; }
+  .kw { color: #b5261e; font-weight: bold; }
+  .note { background: #fff8e1; border: 1px solid #e6cf7a; border-radius: 4px; padding: 8px 12px; margin: 10px 0; font-size: 14px; }
+  .action { background: #eaf3f7; border-left: 5px solid #2c6e8f; padding: 8px 12px; margin: 8px 0; font-size: 14px; }
+  .arrow { text-align: center; font-size: 22px; color: #2c6e8f; margin: 4px 0; }
+  .label { font-size: 13px; color: #555; margin: 4px 0; }
+  p { font-size: 14px; }
+</style>
+</head>
+<body>
+
+<h1>SQL基礎解説 ― 基本情報技術者試験 対策ノート</h1>
+<p>SQLは「表（テーブル）に対して、列・行・並び・集計をどう操作するか」を命令する言語です。各句が表に対してどんな動作をするのか、関係代数の用語（射影・選択・結合）と対応させながら、商品表を使って確認します。</p>
+
+<h2>0. まず全体像 ― 各句が表に対して行う動作</h2>
+<table border="1" cellpadding="8" cellspacing="0" style="border-collapse:collapse; border:1px solid #888; font-size:14px; width:100%;">
+  <tr style="background:#2c6e8f; color:#fff;">
+    <th style="border:1px solid #888; padding:8px;">SQLの句</th>
+    <th style="border:1px solid #888; padding:8px;">表に対する動作</th>
+    <th style="border:1px solid #888; padding:8px;">関係代数での呼び方</th>
+  </tr>
+  <tr><td style="border:1px solid #888; padding:8px;"><b>SELECT 列名</b></td><td style="border:1px solid #888; padding:8px;">必要な<b>列</b>だけを取り出す（縦に切る）</td><td style="border:1px solid #888; padding:8px; background:#eaf3f7;"><b>射影</b>（projection）</td></tr>
+  <tr><td style="border:1px solid #888; padding:8px;"><b>WHERE 条件</b></td><td style="border:1px solid #888; padding:8px;">条件に合う<b>行</b>だけを取り出す（横に切る）</td><td style="border:1px solid #888; padding:8px; background:#eaf3f7;"><b>選択</b>（selection）</td></tr>
+  <tr><td style="border:1px solid #888; padding:8px;"><b>FROM 表名</b></td><td style="border:1px solid #888; padding:8px;">操作の対象となる表を指定する</td><td style="border:1px solid #888; padding:8px;">―</td></tr>
+  <tr><td style="border:1px solid #888; padding:8px;"><b>JOIN ～ ON</b></td><td style="border:1px solid #888; padding:8px;">複数の表を共通の列でつなぐ</td><td style="border:1px solid #888; padding:8px; background:#eaf3f7;"><b>結合</b>（join）</td></tr>
+  <tr><td style="border:1px solid #888; padding:8px;"><b>GROUP BY 列名</b></td><td style="border:1px solid #888; padding:8px;">同じ値の行をまとめて集計の単位にする</td><td style="border:1px solid #888; padding:8px;">グループ化</td></tr>
+  <tr><td style="border:1px solid #888; padding:8px;"><b>HAVING 条件</b></td><td style="border:1px solid #888; padding:8px;">グループ化した<b>結果</b>に条件をかける</td><td style="border:1px solid #888; padding:8px;">―</td></tr>
+  <tr><td style="border:1px solid #888; padding:8px;"><b>ORDER BY 列名</b></td><td style="border:1px solid #888; padding:8px;">結果を指定した列で並べ替える</td><td style="border:1px solid #888; padding:8px;">整列（ソート）</td></tr>
+</table>
+<div class="note"><b>覚え方：</b>「SELECT は縦（列）を切る＝射影」「WHERE は横（行）を切る＝選択」。この2つの対応は試験で頻出です。</div>
+
+<h2>1. 元になる表（商品表）</h2>
+<p>以下の「商品表」を例に解説します。商品コードが主キーです。</p>
+<p class="label">■ 商品表</p>
+<table border="1" cellpadding="8" cellspacing="0" style="border-collapse:collapse; border:1px solid #888; font-size:14px;">
+  <tr style="background:#2c6e8f; color:#fff;">
+    <th style="border:1px solid #888; padding:8px;">商品コード</th>
+    <th style="border:1px solid #888; padding:8px;">商品名</th>
+    <th style="border:1px solid #888; padding:8px;">単価</th>
+    <th style="border:1px solid #888; padding:8px;">分類</th>
+  </tr>
+  <tr><td style="border:1px solid #888; padding:8px;">S001</td><td style="border:1px solid #888; padding:8px;">りんご</td><td style="border:1px solid #888; padding:8px; text-align:right;">150</td><td style="border:1px solid #888; padding:8px;">果物</td></tr>
+  <tr><td style="border:1px solid #888; padding:8px;">S002</td><td style="border:1px solid #888; padding:8px;">みかん</td><td style="border:1px solid #888; padding:8px; text-align:right;">100</td><td style="border:1px solid #888; padding:8px;">果物</td></tr>
+  <tr><td style="border:1px solid #888; padding:8px;">S003</td><td style="border:1px solid #888; padding:8px;">キャベツ</td><td style="border:1px solid #888; padding:8px; text-align:right;">200</td><td style="border:1px solid #888; padding:8px;">野菜</td></tr>
+  <tr><td style="border:1px solid #888; padding:8px;">S004</td><td style="border:1px solid #888; padding:8px;">にんじん</td><td style="border:1px solid #888; padding:8px; text-align:right;">80</td><td style="border:1px solid #888; padding:8px;">野菜</td></tr>
+  <tr><td style="border:1px solid #888; padding:8px;">S005</td><td style="border:1px solid #888; padding:8px;">バナナ</td><td style="border:1px solid #888; padding:8px; text-align:right;">120</td><td style="border:1px solid #888; padding:8px;">果物</td></tr>
+</table>
+
+<h2>2. SELECT / FROM ― 列を取り出す（射影）</h2>
+<div class="sql"><span class="kw">SELECT</span> 商品名, 単価 <span class="kw">FROM</span> 商品表</div>
+<div class="action"><b>動作（射影）：</b>商品表から「商品名」と「単価」の列だけを縦に取り出します。行はすべて残ります。</div>
+<p class="label">■ 結果</p>
+<table border="1" cellpadding="8" cellspacing="0" style="border-collapse:collapse; border:1px solid #888; font-size:14px;">
+  <tr style="background:#2c6e8f; color:#fff;">
+    <th style="border:1px solid #888; padding:8px;">商品名</th>
+    <th style="border:1px solid #888; padding:8px;">単価</th>
+  </tr>
+  <tr><td style="border:1px solid #888; padding:8px;">りんご</td><td style="border:1px solid #888; padding:8px; text-align:right;">150</td></tr>
+  <tr><td style="border:1px solid #888; padding:8px;">みかん</td><td style="border:1px solid #888; padding:8px; text-align:right;">100</td></tr>
+  <tr><td style="border:1px solid #888; padding:8px;">キャベツ</td><td style="border:1px solid #888; padding:8px; text-align:right;">200</td></tr>
+  <tr><td style="border:1px solid #888; padding:8px;">にんじん</td><td style="border:1px solid #888; padding:8px; text-align:right;">80</td></tr>
+  <tr><td style="border:1px solid #888; padding:8px;">バナナ</td><td style="border:1px solid #888; padding:8px; text-align:right;">120</td></tr>
+</table>
+<div class="note"><b>全列を取り出すには</b> <code>SELECT * FROM 商品表</code> のように「*（アスタリスク）」を使います。</div>
+
+<h2>3. WHERE ― 条件で行を絞る（選択）</h2>
+<div class="sql"><span class="kw">SELECT</span> 商品名, 単価 <span class="kw">FROM</span> 商品表
+<span class="kw">WHERE</span> 単価 &gt;= 120</div>
+<div class="action"><b>動作（選択）：</b>「単価が120以上」という条件に合う行だけを横に取り出します。</div>
+<p class="label">■ 結果</p>
+<table border="1" cellpadding="8" cellspacing="0" style="border-collapse:collapse; border:1px solid #888; font-size:14px;">
+  <tr style="background:#2c6e8f; color:#fff;">
+    <th style="border:1px solid #888; padding:8px;">商品名</th>
+    <th style="border:1px solid #888; padding:8px;">単価</th>
+  </tr>
+  <tr><td style="border:1px solid #888; padding:8px;">りんご</td><td style="border:1px solid #888; padding:8px; text-align:right;">150</td></tr>
+  <tr><td style="border:1px solid #888; padding:8px;">キャベツ</td><td style="border:1px solid #888; padding:8px; text-align:right;">200</td></tr>
+  <tr><td style="border:1px solid #888; padding:8px;">バナナ</td><td style="border:1px solid #888; padding:8px; text-align:right;">120</td></tr>
+</table>
+
+<h3>WHEREで使える主な条件</h3>
+<table border="1" cellpadding="8" cellspacing="0" style="border-collapse:collapse; border:1px solid #888; font-size:14px; width:100%;">
+  <tr style="background:#2c6e8f; color:#fff;">
+    <th style="border:1px solid #888; padding:8px;">演算子</th>
+    <th style="border:1px solid #888; padding:8px;">意味</th>
+    <th style="border:1px solid #888; padding:8px;">例</th>
+  </tr>
+  <tr><td style="border:1px solid #888; padding:8px;">= &lt; &gt; &lt;= &gt;= &lt;&gt;</td><td style="border:1px solid #888; padding:8px;">比較（&lt;&gt; は「等しくない」）</td><td style="border:1px solid #888; padding:8px;">単価 &lt;&gt; 100</td></tr>
+  <tr><td style="border:1px solid #888; padding:8px;">AND / OR / NOT</td><td style="border:1px solid #888; padding:8px;">条件の組み合わせ</td><td style="border:1px solid #888; padding:8px;">分類='果物' AND 単価&gt;=120</td></tr>
+  <tr><td style="border:1px solid #888; padding:8px;">BETWEEN A AND B</td><td style="border:1px solid #888; padding:8px;">A以上B以下の範囲</td><td style="border:1px solid #888; padding:8px;">単価 BETWEEN 100 AND 150</td></tr>
+  <tr><td style="border:1px solid #888; padding:8px;">IN (値, 値, …)</td><td style="border:1px solid #888; padding:8px;">いずれかに一致</td><td style="border:1px solid #888; padding:8px;">分類 IN ('果物','野菜')</td></tr>
+  <tr><td style="border:1px solid #888; padding:8px;">LIKE</td><td style="border:1px solid #888; padding:8px;">あいまい検索<br>% … 任意の0文字以上<br>_ … 任意の1文字</td><td style="border:1px solid #888; padding:8px;">商品名 LIKE '%ん%'<br>（「ん」を含む）</td></tr>
+  <tr><td style="border:1px solid #888; padding:8px;">IS NULL</td><td style="border:1px solid #888; padding:8px;">値が空（NULL）か</td><td style="border:1px solid #888; padding:8px;">分類 IS NULL</td></tr>
+</table>
+
+<h2>4. ORDER BY ― 並べ替える（整列）</h2>
+<div class="sql"><span class="kw">SELECT</span> 商品名, 単価 <span class="kw">FROM</span> 商品表
+<span class="kw">ORDER BY</span> 単価 <span class="kw">DESC</span></div>
+<div class="action"><b>動作（整列）：</b>結果を単価の降順（大きい順）に並べ替えます。<b>ASC＝昇順（小さい順、既定）</b>、<b>DESC＝降順（大きい順）</b>。</div>
+<p class="label">■ 結果</p>
+<table border="1" cellpadding="8" cellspacing="0" style="border-collapse:collapse; border:1px solid #888; font-size:14px;">
+  <tr style="background:#2c6e8f; color:#fff;">
+    <th style="border:1px solid #888; padding:8px;">商品名</th>
+    <th style="border:1px solid #888; padding:8px;">単価</th>
+  </tr>
+  <tr><td style="border:1px solid #888; padding:8px;">キャベツ</td><td style="border:1px solid #888; padding:8px; text-align:right;">200</td></tr>
+  <tr><td style="border:1px solid #888; padding:8px;">りんご</td><td style="border:1px solid #888; padding:8px; text-align:right;">150</td></tr>
+  <tr><td style="border:1px solid #888; padding:8px;">バナナ</td><td style="border:1px solid #888; padding:8px; text-align:right;">120</td></tr>
+  <tr><td style="border:1px solid #888; padding:8px;">みかん</td><td style="border:1px solid #888; padding:8px; text-align:right;">100</td></tr>
+  <tr><td style="border:1px solid #888; padding:8px;">にんじん</td><td style="border:1px solid #888; padding:8px; text-align:right;">80</td></tr>
+</table>
+
+<h2>5. GROUP BY と集約関数 ― グループごとに集計する</h2>
+<p>集約関数は「複数の行を1つの値にまとめる」関数です。</p>
+<table border="1" cellpadding="8" cellspacing="0" style="border-collapse:collapse; border:1px solid #888; font-size:14px; width:100%;">
+  <tr style="background:#2c6e8f; color:#fff;">
+    <th style="border:1px solid #888; padding:8px;">関数</th>
+    <th style="border:1px solid #888; padding:8px;">意味</th>
+  </tr>
+  <tr><td style="border:1px solid #888; padding:8px;">COUNT(*)</td><td style="border:1px solid #888; padding:8px;">行数を数える</td></tr>
+  <tr><td style="border:1px solid #888; padding:8px;">SUM(列)</td><td style="border:1px solid #888; padding:8px;">合計</td></tr>
+  <tr><td style="border:1px solid #888; padding:8px;">AVG(列)</td><td style="border:1px solid #888; padding:8px;">平均</td></tr>
+  <tr><td style="border:1px solid #888; padding:8px;">MAX(列) / MIN(列)</td><td style="border:1px solid #888; padding:8px;">最大値 / 最小値</td></tr>
+</table>
+
+<div class="sql"><span class="kw">SELECT</span> 分類, COUNT(*) <span class="kw">AS</span> 件数, AVG(単価) <span class="kw">AS</span> 平均単価
+<span class="kw">FROM</span> 商品表
+<span class="kw">GROUP BY</span> 分類</div>
+<div class="action"><b>動作（グループ化＋集計）：</b>「分類」が同じ行をまとめて1グループにし、グループごとに件数と平均単価を計算します。<b>AS は列に別名をつける</b>指定です。</div>
+<p class="label">■ 結果</p>
+<table border="1" cellpadding="8" cellspacing="0" style="border-collapse:collapse; border:1px solid #888; font-size:14px;">
+  <tr style="background:#2c6e8f; color:#fff;">
+    <th style="border:1px solid #888; padding:8px;">分類</th>
+    <th style="border:1px solid #888; padding:8px;">件数</th>
+    <th style="border:1px solid #888; padding:8px;">平均単価</th>
+  </tr>
+  <tr><td style="border:1px solid #888; padding:8px;">果物</td><td style="border:1px solid #888; padding:8px; text-align:right;">3</td><td style="border:1px solid #888; padding:8px; text-align:right;">123.3</td></tr>
+  <tr><td style="border:1px solid #888; padding:8px;">野菜</td><td style="border:1px solid #888; padding:8px; text-align:right;">2</td><td style="border:1px solid #888; padding:8px; text-align:right;">140.0</td></tr>
+</table>
+<div class="note">果物＝(150+100+120)÷3＝123.3、野菜＝(200+80)÷2＝140.0。<br><b>注意：</b>GROUP BY を使うとき、SELECT に書ける列は「グループ化した列」と「集約関数」だけです。</div>
+
+<h2>6. HAVING ― グループ化した結果に条件をかける</h2>
+<div class="sql"><span class="kw">SELECT</span> 分類, AVG(単価) <span class="kw">AS</span> 平均単価
+<span class="kw">FROM</span> 商品表
+<span class="kw">GROUP BY</span> 分類
+<span class="kw">HAVING</span> AVG(単価) &gt;= 130</div>
+<div class="action"><b>動作：</b>グループ化して平均単価を求めた<b>後</b>、平均単価が130以上のグループだけを残します。</div>
+<p class="label">■ 結果</p>
+<table border="1" cellpadding="8" cellspacing="0" style="border-collapse:collapse; border:1px solid #888; font-size:14px;">
+  <tr style="background:#2c6e8f; color:#fff;">
+    <th style="border:1px solid #888; padding:8px;">分類</th>
+    <th style="border:1px solid #888; padding:8px;">平均単価</th>
+  </tr>
+  <tr><td style="border:1px solid #888; padding:8px;">野菜</td><td style="border:1px solid #888; padding:8px; text-align:right;">140.0</td></tr>
+</table>
+<div class="note"><b>WHERE と HAVING の違い（頻出）：</b><br>・<b>WHERE</b> … グループ化の<b>前</b>に「行」を絞る（集約関数は使えない）<br>・<b>HAVING</b> … グループ化の<b>後</b>に「グループ」を絞る（集約関数が使える）</div>
+
+<h2>7. DISTINCT ― 重複を取り除く</h2>
+<div class="sql"><span class="kw">SELECT DISTINCT</span> 分類 <span class="kw">FROM</span> 商品表</div>
+<div class="action"><b>動作：</b>取り出した結果から重複した行を1つにまとめます。</div>
+<p class="label">■ 結果</p>
+<table border="1" cellpadding="8" cellspacing="0" style="border-collapse:collapse; border:1px solid #888; font-size:14px;">
+  <tr style="background:#2c6e8f; color:#fff;">
+    <th style="border:1px solid #888; padding:8px;">分類</th>
+  </tr>
+  <tr><td style="border:1px solid #888; padding:8px;">果物</td></tr>
+  <tr><td style="border:1px solid #888; padding:8px;">野菜</td></tr>
+</table>
+
+<h2>8. JOIN ― 2つの表を結合する</h2>
+<p>もう1つ「売上表」があるとします（商品コードで商品表とつながります）。</p>
+<p class="label">■ 売上表</p>
+<table border="1" cellpadding="8" cellspacing="0" style="border-collapse:collapse; border:1px solid #888; font-size:14px;">
+  <tr style="background:#5b8a3a; color:#fff;">
+    <th style="border:1px solid #888; padding:8px;">売上番号</th>
+    <th style="border:1px solid #888; padding:8px;">商品コード</th>
+    <th style="border:1px solid #888; padding:8px;">数量</th>
+  </tr>
+  <tr><td style="border:1px solid #888; padding:8px;">1</td><td style="border:1px solid #888; padding:8px;">S001</td><td style="border:1px solid #888; padding:8px; text-align:right;">3</td></tr>
+  <tr><td style="border:1px solid #888; padding:8px;">2</td><td style="border:1px solid #888; padding:8px;">S003</td><td style="border:1px solid #888; padding:8px; text-align:right;">2</td></tr>
+  <tr><td style="border:1px solid #888; padding:8px;">3</td><td style="border:1px solid #888; padding:8px;">S001</td><td style="border:1px solid #888; padding:8px; text-align:right;">1</td></tr>
+  <tr><td style="border:1px solid #888; padding:8px;">4</td><td style="border:1px solid #888; padding:8px;">S005</td><td style="border:1px solid #888; padding:8px; text-align:right;">5</td></tr>
+</table>
+
+<div class="sql"><span class="kw">SELECT</span> 売上表.売上番号, 商品表.商品名, 売上表.数量
+<span class="kw">FROM</span> 商品表 <span class="kw">INNER JOIN</span> 売上表
+  <span class="kw">ON</span> 商品表.商品コード = 売上表.商品コード</div>
+<div class="action"><b>動作（結合）：</b>商品コードが一致する行どうしをつなぎ、1つの表にします。これで売上に商品名を組み合わせて表示できます。INNER JOIN は両方の表で一致する行だけを残します。</div>
+<p class="label">■ 結果</p>
+<table border="1" cellpadding="8" cellspacing="0" style="border-collapse:collapse; border:1px solid #888; font-size:14px;">
+  <tr style="background:#2c6e8f; color:#fff;">
+    <th style="border:1px solid #888; padding:8px;">売上番号</th>
+    <th style="border:1px solid #888; padding:8px;">商品名</th>
+    <th style="border:1px solid #888; padding:8px;">数量</th>
+  </tr>
+  <tr><td style="border:1px solid #888; padding:8px;">1</td><td style="border:1px solid #888; padding:8px;">りんご</td><td style="border:1px solid #888; padding:8px; text-align:right;">3</td></tr>
+  <tr><td style="border:1px solid #888; padding:8px;">2</td><td style="border:1px solid #888; padding:8px;">キャベツ</td><td style="border:1px solid #888; padding:8px; text-align:right;">2</td></tr>
+  <tr><td style="border:1px solid #888; padding:8px;">3</td><td style="border:1px solid #888; padding:8px;">りんご</td><td style="border:1px solid #888; padding:8px; text-align:right;">1</td></tr>
+  <tr><td style="border:1px solid #888; padding:8px;">4</td><td style="border:1px solid #888; padding:8px;">バナナ</td><td style="border:1px solid #888; padding:8px; text-align:right;">5</td></tr>
+</table>
+<div class="note">列名がどちらの表のものか区別するため <code>表名.列名</code> と書きます。<b>S002・S004（みかん・にんじん）は売上が無い</b>ので INNER JOIN の結果には現れません。</div>
+
+<h2>9. 全部入りの例（記述順と実行順）</h2>
+<div class="sql"><span class="kw">SELECT</span> 分類, AVG(単価) <span class="kw">AS</span> 平均単価
+<span class="kw">FROM</span> 商品表
+<span class="kw">WHERE</span> 単価 &gt;= 100
+<span class="kw">GROUP BY</span> 分類
+<span class="kw">HAVING</span> COUNT(*) &gt;= 2
+<span class="kw">ORDER BY</span> 平均単価 <span class="kw">DESC</span></div>
+<div class="note"><b>書く順番：</b>SELECT → FROM → WHERE → GROUP BY → HAVING → ORDER BY<br>
+<b>実際に処理される順番：</b>FROM →（JOIN）→ WHERE（行を選択）→ GROUP BY（集計）→ HAVING（グループを絞る）→ SELECT（列を射影）→ ORDER BY（整列）<br>
+※「WHERE で行を絞ってから集計し、HAVING で集計結果を絞り、最後に並べ替える」という流れを押さえておくと、出題パターンに対応しやすいです。</div>
+
+<h2>10. 重要用語まとめ</h2>
+<table border="1" cellpadding="8" cellspacing="0" style="border-collapse:collapse; border:1px solid #888; font-size:14px; width:100%;">
+  <tr style="background:#2c6e8f; color:#fff;">
+    <th style="border:1px solid #888; padding:8px;">用語</th>
+    <th style="border:1px solid #888; padding:8px;">表に対する動作 / 意味</th>
+  </tr>
+  <tr><td style="border:1px solid #888; padding:8px;">SELECT</td><td style="border:1px solid #888; padding:8px;">列を取り出す（<b>射影</b>）</td></tr>
+  <tr><td style="border:1px solid #888; padding:8px;">FROM</td><td style="border:1px solid #888; padding:8px;">対象の表を指定</td></tr>
+  <tr><td style="border:1px solid #888; padding:8px;">WHERE</td><td style="border:1px solid #888; padding:8px;">条件で行を絞る（<b>選択</b>）</td></tr>
+  <tr><td style="border:1px solid #888; padding:8px;">DISTINCT</td><td style="border:1px solid #888; padding:8px;">重複行を除く</td></tr>
+  <tr><td style="border:1px solid #888; padding:8px;">ORDER BY</td><td style="border:1px solid #888; padding:8px;">並べ替え（ASC昇順 / DESC降順）</td></tr>
+  <tr><td style="border:1px solid #888; padding:8px;">GROUP BY</td><td style="border:1px solid #888; padding:8px;">グループ化して集計</td></tr>
+  <tr><td style="border:1px solid #888; padding:8px;">集約関数</td><td style="border:1px solid #888; padding:8px;">COUNT / SUM / AVG / MAX / MIN</td></tr>
+  <tr><td style="border:1px solid #888; padding:8px;">HAVING</td><td style="border:1px solid #888; padding:8px;">集計後のグループを絞る</td></tr>
+  <tr><td style="border:1px solid #888; padding:8px;">JOIN ～ ON</td><td style="border:1px solid #888; padding:8px;">複数の表を結合（<b>結合</b>）</td></tr>
+  <tr><td style="border:1px solid #888; padding:8px;">AS</td><td style="border:1px solid #888; padding:8px;">列や表に別名をつける</td></tr>
+  <tr><td style="border:1px solid #888; padding:8px;">LIKE / % / _</td><td style="border:1px solid #888; padding:8px;">あいまい検索（%＝0文字以上、_＝1文字）</td></tr>
+  <tr><td style="border:1px solid #888; padding:8px;">BETWEEN / IN</td><td style="border:1px solid #888; padding:8px;">範囲 / 候補のいずれかに一致</td></tr>
+</table>
+
+<p style="margin-top:32px; font-size:12px; color:#888;">基本情報技術者試験 SQL学習ノート</p>
+
+</body>
+</html>
